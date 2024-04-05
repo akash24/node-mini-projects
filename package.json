@@ -1,12 +1,13 @@
 {
-  "name": "projects",
+  "name": "node-challenges",
   "version": "1.0.0",
-  "description": "",
+  "description": "These are minor challenges solved using node",
   "main": "index.js",
   "scripts": {
+    "start": "node session_billing.js test_data/test_logfile.txt",
     "test": "npx jest"
   },
-  "author": "",
+  "author": "Akash Sharma",
   "license": "ISC",
   "devDependencies": {
     "jest": "^29.7.0"
