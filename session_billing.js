@@ -2,68 +2,65 @@ const fs = require("fs");
 let _ = require("lodash");
 
 // Function to parse the log file and generate the report
+/*
+14:02:03 ALICE99  Start
+14:02:34 ALICE99  End
+14:02:58 ALICE99  Start
+14:03:02 CHARLIE  Start
+14:03:35 ALICE99  End
+14:03:37 CHARLIE  End
+14:04:05 ALICE99  Start
+14:04:23 ALICE99  End
+14:04:55 CHARLIE  Start
+14:05:03 ALICE99  End
+*/
 function generateReport(filePath) {
-  // Read the log file
   const data = fs.readFileSync(filePath, "utf8");
-
-  // Initialize variables to store session data
   const sessions = {};
   let earliestTime = "23:59:59";
   let latestTime = "00:00:00";
 
-  // Split the data into lines
   const lines = data.split("\n");
-
-  // Process each line
   lines.forEach((line) => {
-    // Extract timestamp, username, and action
     const [timeStamp, username, action] = line.trim().split(/\s+/);
-    // Validate timestamp, username, and action
     if (timeStamp && username && (action === "Start" || action === "End")) {
-      // Update earliest and latest time
       if (timeStamp < earliestTime) earliestTime = timeStamp;
       if (timeStamp > latestTime) latestTime = timeStamp;
-
-      // Update session data
-      if (!sessions[`${username}_${action}`]) {
-        sessions[`${username}_${action}`] = [];
+      if (!sessions[username]) {
+        sessions[username] = [];
       }
-      sessions[`${username}_${action}`].push({ timeStamp });
+      sessions[username].push({ timeStamp, action });
     }
   });
-  console.log(sessions);
-  return false;
 
-  // Process sessions and calculate total duration
   const report = [];
   for (const username in sessions) {
     const userSessions = sessions[username];
 
     let sessionCount = 0;
     let totalDuration = 0;
-    // let activeSessions = 0;
 
-    // Sort sessions by timestamp
-    userSessions.sort((a, b) => a.timeStamp.localeCompare(b.timeStamp));
-    console.log(_.chunk(userSessions, 2));
-    // Iterate through sorted sessions
-    // userSessions.forEach((session) => {
-    // if (session.action === "Start") {
-    //   activeSessions++;
-    // } else if (session.action === "End") {
-    //   activeSessions--;
-    // }
-    // // If all sessions have ended or no sessions have started yet
-    // if (activeSessions <= 0 || activeSessions === userSessions.length) {
-    //   totalDuration += timeDifference(earliestTime, latestTime);
-    // } else {
-    //   totalDuration += timeDifference(
-    //     session.timeStamp,
-    //     userSessions[userSessions.length - 1].timeStamp
-    //   );
-    // }
-    // sessionCount++;
-    // });
+    // userSessions.sort((a, b) => a.timeStamp.localeCompare(b.timeStamp));
+
+    let inSession = false;
+    let sessionStart = "";
+    userSessions.forEach((session) => {
+      if (session.action === "Start") {
+        inSession = true;
+        sessionStart = session.timeStamp;
+      } else if (session.action === "End" && inSession) {
+        inSession = false;
+        totalDuration += timeDifference(sessionStart, session.timeStamp);
+        sessionCount++;
+      } else if (session.action === "End" && !inSession) {
+        totalDuration += timeDifference(earliestTime, session.timeStamp);
+        sessionCount++;
+      }
+    });
+
+    if (inSession) {
+      sessionCount++;
+    }
 
     report.push({ username, sessionCount, totalDuration });
   }
@@ -72,6 +69,7 @@ function generateReport(filePath) {
   report.forEach(({ username, sessionCount, totalDuration }) => {
     console.log(`${username}  ${sessionCount} ${totalDuration}`);
   });
+  return report;
 }
 
 // Function to calculate time difference in seconds
